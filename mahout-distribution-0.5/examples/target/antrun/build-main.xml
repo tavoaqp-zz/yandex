@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="maven-antrun-" default="main"  >
+<target name="main">
+  <ant antfile="build.xml" target="build-grouplens-jar">
+    <property name="dest" value="/home/gustavo/Desktop/yandex_data/mahout-distribution-0.5/examples/target"/>
+    <property name="examples-base" value="src/main/java"/>
+  </ant>
+</target>
+</project>

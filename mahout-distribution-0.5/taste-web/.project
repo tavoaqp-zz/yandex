@@ -1,0 +1,24 @@
+<projectDescription>
+  <name>mahout-taste-webapp</name>
+  <comment>Mahout Taste Collaborative Filtering Web App. NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
+  <projects>
+    <project>mahout-core</project>
+    <project>mahout-math</project>
+  </projects>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+    <buildCommand>
+      <name>com.atlassw.tools.eclipse.checkstyle.CheckstyleBuilder</name>
+    </buildCommand>
+    <buildCommand>
+      <name>net.sourceforge.pmd.eclipse.plugin.pmdBuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>com.atlassw.tools.eclipse.checkstyle.CheckstyleNature</nature>
+    <nature>net.sourceforge.pmd.eclipse.plugin.pmdNature</nature>
+  </natures>
+</projectDescription>

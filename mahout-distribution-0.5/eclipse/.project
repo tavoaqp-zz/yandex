@@ -1,0 +1,34 @@
+<projectDescription>
+  <name>mahout-eclipse-support</name>
+  <comment>Mahout&apos;s goal is to build scalable machine learning libraries. With scalable we mean: Scalable to
+    reasonably large data sets. Our core algorithms for clustering, classfication and batch based collaborative
+    filtering are implemented on top of Apache Hadoop using the map/reduce paradigm. However we do not restrict
+    contributions to Hadoop based implementations: Contributions that run on a single node or on a non-Hadoop
+    cluster are welcome as well. The core libraries are highly optimized to allow for good performance also for
+    non-distributed algorithms. Scalable to support your business case. Mahout is distributed under a commercially
+    friendly Apache Software license. Scalable community. The goal of Mahout is to build a vibrant, responsive,
+    diverse community to facilitate discussions not only on the project itself but also on potential use cases. Come
+    to the mailing lists to find out more. Currently Mahout supports mainly four use cases: Recommendation mining
+    takes users&apos; behavior and from that tries to find items users might like. Clustering takes e.g. text documents
+    and groups them into groups of topically related documents. Classification learns from exisiting categorized
+    documents what documents of a specific category look like and is able to assign unlabelled documents to the
+    (hopefully) correct category. Frequent itemset mining takes a set of item groups (terms in a query session,
+    shopping cart content) and identifies, which individual items usually appear together. NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
+  <projects/>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+    <buildCommand>
+      <name>com.atlassw.tools.eclipse.checkstyle.CheckstyleBuilder</name>
+    </buildCommand>
+    <buildCommand>
+      <name>net.sourceforge.pmd.eclipse.plugin.pmdBuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>com.atlassw.tools.eclipse.checkstyle.CheckstyleNature</nature>
+    <nature>net.sourceforge.pmd.eclipse.plugin.pmdNature</nature>
+  </natures>
+</projectDescription>
