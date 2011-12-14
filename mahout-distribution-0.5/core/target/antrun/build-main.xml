@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project name="maven-antrun-" default="main"  >
 <target name="main">
-  <copy file="../src/conf/driver.classes.props" tofile="/home/gustavo/Desktop/yandex_data/mahout-distribution-0.5/core/target/classes/driver.classes.default.props"/>
+  <copy file="../src/conf/driver.classes.props" tofile="/home/gustavo/Desktop/yandex_data/yandex/mahout-distribution-0.5/core/target/classes/driver.classes.default.props"/>
 </target>
 </project>

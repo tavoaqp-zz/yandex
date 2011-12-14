@@ -16,6 +16,7 @@ import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.HRegionPartitioner;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -43,6 +44,8 @@ public class YandexRelevanceDriver extends AbstractJob {
 	public static String BINARY_OUTPUT="binary";
 	public static String BINARY_OUTPUT_KEY="binary";
 	
+	public static String MAXIMUM_EM_RUNS="emRuns";
+	
 	public static void main(String[] args) throws Exception {
 		ToolRunner.run(new Configuration(), new YandexRelevanceDriver(), args);		
 	}
@@ -59,16 +62,29 @@ public class YandexRelevanceDriver extends AbstractJob {
 	        .withShortName("-bo");
 	  }
 	
+	public static DefaultOptionBuilder maximumEMRunsOption() {
+	    return new DefaultOptionBuilder()
+	        .withLongName(MAXIMUM_EM_RUNS)
+	        .withRequired(true)
+	        .withArgument(
+	            new ArgumentBuilder().withName(MAXIMUM_EM_RUNS).withMinimum(1)
+	                .withMaximum(1).create())
+	        .withDescription(
+	            "Maximum loops for EM algorithm")
+	        .withShortName("-bo");
+	  }
+	
 	@Override
 	public int run(String[] arg0) throws Exception {
 		addInputOption();
 		addOutputOption();
-		
+		maximumEMRunsOption();
 		if (parseArguments(arg0) == null) {
 		      return -1;
 		    }
 		Path input = getInputPath();
 		Path output = getOutputPath();
+		
 		if (getConf() == null) {
 			setConf(new Configuration());
 		}
@@ -87,7 +103,7 @@ public class YandexRelevanceDriver extends AbstractJob {
 	    job.setMapOutputValueClass(DocObservations.class);
 	    job.setMapperClass(UrlDocMapper.class);
 	    job.setCombinerClass(UrlDocCombiner.class);
-	    TableMapReduceUtil.initTableReducerJob("click_event", UrlDocReducer.class, job);
+	    TableMapReduceUtil.initTableReducerJob("click_event", UrlDocReducer.class, job,HRegionPartitioner.class);
 	    
 	    FileInputFormat.addInputPath(job, input);
 	    
@@ -111,13 +127,13 @@ public class YandexRelevanceDriver extends AbstractJob {
 	    
 	    job1.waitForCompletion(true);
 	    
-//	    log.info("Obtaining parameters for click model!");
-//	    
+//	    log.info("Init values for click model's parameters!");
 //	    for (int pos=1;pos<10;pos++)
 //	    {
 //	    	for (int dist=1;dist<10;dist++)
-//	    	{
-//	    		log.info("Estimating for pos="+pos+" and dist="+dist);
+//	    	{	
+//	    		Job initjob = new Job(getConf(), "Parsing log file and putting observations to binary_sessions");
+//	    		
 //	    		Scan scan = new Scan();
 //	            String columns = "details"; // comma seperated
 //	            SingleColumnValueFilter filter1=new SingleColumnValueFilter(Bytes.toBytes("details"),
@@ -131,9 +147,40 @@ public class YandexRelevanceDriver extends AbstractJob {
 //	            filterList.addFilter(filter2);
 //	            scan.addColumns(columns);
 //	            scan.setFilter(filterList);
-//	            TableMapReduceUtil.initTableMapperJob("click_event", scan, EMMapper.class, ImmutableBytesWritable.class,
-//	                    IntWritable.class, job);
-//	            TableMapReduceUtil.initTableReducerJob("click_estimates", EMReducer.class, job);
+//	            TableMapReduceUtil.initTableMapperJob("click_event", scan, InitParamMapper.class, ImmutableBytesWritable.class,
+//	                    IntWritable.class, initjob);
+//	            TableMapReduceUtil.initTableReducerJob("click_estimates", InitParamReducer.class, initjob);
+//	    		
+//	    	}
+//	    }
+//	    
+//	    log.info("Obtaining parameters for click model!");
+//	    
+//	    int maxEMRuns=Integer.parseInt(getOption(MAXIMUM_EM_RUNS));
+//	    for (int pos=1;pos<10;pos++)
+//	    {
+//	    	for (int dist=1;dist<10;dist++)
+//	    	{
+//	    		for (int run=1;run<=maxEMRuns;run++)
+//	    		{
+//		    		log.info("Estimating for pos="+pos+" and dist="+dist+": Run "+run);
+//		    		Scan scan = new Scan();
+//		            String columns = "details"; // comma seperated
+//		            SingleColumnValueFilter filter1=new SingleColumnValueFilter(Bytes.toBytes("details"),
+//		            		Bytes.toBytes("position"),
+//		            		CompareOp.EQUAL,Bytes.toBytes(pos));
+//		            SingleColumnValueFilter filter2=new SingleColumnValueFilter(Bytes.toBytes("details"),
+//		            		Bytes.toBytes("distance"),
+//		            		CompareOp.EQUAL,Bytes.toBytes(dist));
+//		            FilterList filterList=new FilterList();
+//		            filterList.addFilter(filter1);
+//		            filterList.addFilter(filter2);
+//		            scan.addColumns(columns);
+//		            scan.setFilter(filterList);
+//		            TableMapReduceUtil.initTableMapperJob("click_event", scan, EMMapper.class, ImmutableBytesWritable.class,
+//		                    IntWritable.class, job);
+//		            TableMapReduceUtil.initTableReducerJob("click_estimates", EMReducer.class, job);
+//	    		}
 //	    	}
 //	    }
 	    

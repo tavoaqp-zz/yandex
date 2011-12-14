@@ -85,8 +85,7 @@
 			<attribute name="javadoc_location" value="jar:file:/home/gustavo/.m2/repository/org/apache/mahout/mahout-collections/1.0/mahout-collections-1.0-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="var" path="M2_REPO/org/apache/mahout/mahout-math/0.5/mahout-math-0.5.jar" sourcepath="M2_REPO/org/apache/mahout/mahout-math/0.5/mahout-math-0.5-sources.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/apache/mahout/mahout-math/0.5/mahout-math-0.5-tests.jar"/>
+	<classpathentry kind="src" path="/mahout-math"/>
 	<classpathentry kind="var" path="M2_REPO/org/objenesis/objenesis/1.2/objenesis-1.2.jar" sourcepath="M2_REPO/org/objenesis/objenesis/1.2/objenesis-1.2-sources.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:file:/home/gustavo/.m2/repository/org/objenesis/objenesis/1.2/objenesis-1.2-javadoc.jar!/"/>
