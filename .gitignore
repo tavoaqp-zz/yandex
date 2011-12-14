@@ -1,2 +1,6 @@
+.jar
+.class
+.war
 *.jar
 *.class
+*.war

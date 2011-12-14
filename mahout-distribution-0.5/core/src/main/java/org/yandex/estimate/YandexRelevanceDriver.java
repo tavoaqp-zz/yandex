@@ -103,7 +103,7 @@ public class YandexRelevanceDriver extends AbstractJob {
 	    job.setMapOutputValueClass(DocObservations.class);
 	    job.setMapperClass(UrlDocMapper.class);
 	    job.setCombinerClass(UrlDocCombiner.class);
-	    TableMapReduceUtil.initTableReducerJob("click_event", UrlDocReducer.class, job,HRegionPartitioner.class);
+	    TableMapReduceUtil.initTableReducerJob("click_event", UrlDocReducer.class, job);
 	    
 	    FileInputFormat.addInputPath(job, input);
 	    
