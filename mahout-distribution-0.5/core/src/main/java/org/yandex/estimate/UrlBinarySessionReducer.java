@@ -104,6 +104,6 @@ public class UrlBinarySessionReducer extends
 		super.setup(context);
 		Configuration conf = context.getConfiguration();
 		dumpToClickEvent = Boolean.parseBoolean(conf
-				.get(ParseDataToBinary.DUMP_TO_CLICK_EVENT));
+				.get(ParseDataToBinaryDriver.DUMP_TO_CLICK_EVENT));
 	}
 }

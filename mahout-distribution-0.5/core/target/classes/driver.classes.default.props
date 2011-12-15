@@ -39,4 +39,4 @@ org.apache.mahout.clustering.spectral.kmeans.SpectralKMeansDriver = spectralkmea
 org.apache.mahout.cf.taste.hadoop.als.ParallelALSFactorizationJob = parallelALS : ALS-WR factorization of a rating matrix
 org.apache.mahout.cf.taste.hadoop.als.PredictionJob = predictFromFactorization : predict preferences from a factorization of a rating matrix
 org.yandex.estimate.YandexRelevanceDriver = yandex : Yandex relevance prediction job
-org.yandex.estimate.ParseDataToBinary = parseyandex : Yandex log parsing job
+org.yandex.estimate.ParseDataToBinaryDriver = parseyandex : Yandex log parsing job
