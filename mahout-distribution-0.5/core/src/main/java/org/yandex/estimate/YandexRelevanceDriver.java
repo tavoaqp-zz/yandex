@@ -119,6 +119,7 @@ public class YandexRelevanceDriver extends AbstractJob {
 	    job1.setMapOutputValueClass(DocObservations.class);
 	    job1.setMapperClass(UrlDocMapper.class);
 	    job1.setCombinerClass(UrlDocCombiner.class);
+	    job1.setReducerClass(UrlBinarySessionReducer.class);
 	    TableMapReduceUtil.initTableReducerJob("binary_sessions", UrlBinarySessionReducer.class, job1);    
 	    
 	    FileInputFormat.addInputPath(job1, input);
@@ -127,62 +128,7 @@ public class YandexRelevanceDriver extends AbstractJob {
 	    
 	    job1.waitForCompletion(true);
 	    
-//	    log.info("Init values for click model's parameters!");
-//	    for (int pos=1;pos<10;pos++)
-//	    {
-//	    	for (int dist=1;dist<10;dist++)
-//	    	{	
-//	    		Job initjob = new Job(getConf(), "Parsing log file and putting observations to binary_sessions");
-//	    		
-//	    		Scan scan = new Scan();
-//	            String columns = "details"; // comma seperated
-//	            SingleColumnValueFilter filter1=new SingleColumnValueFilter(Bytes.toBytes("details"),
-//	            		Bytes.toBytes("position"),
-//	            		CompareOp.EQUAL,Bytes.toBytes(pos));
-//	            SingleColumnValueFilter filter2=new SingleColumnValueFilter(Bytes.toBytes("details"),
-//	            		Bytes.toBytes("distance"),
-//	            		CompareOp.EQUAL,Bytes.toBytes(dist));
-//	            FilterList filterList=new FilterList();
-//	            filterList.addFilter(filter1);
-//	            filterList.addFilter(filter2);
-//	            scan.addColumns(columns);
-//	            scan.setFilter(filterList);
-//	            TableMapReduceUtil.initTableMapperJob("click_event", scan, InitParamMapper.class, ImmutableBytesWritable.class,
-//	                    IntWritable.class, initjob);
-//	            TableMapReduceUtil.initTableReducerJob("click_estimates", InitParamReducer.class, initjob);
-//	    		
-//	    	}
-//	    }
-//	    
-//	    log.info("Obtaining parameters for click model!");
-//	    
-//	    int maxEMRuns=Integer.parseInt(getOption(MAXIMUM_EM_RUNS));
-//	    for (int pos=1;pos<10;pos++)
-//	    {
-//	    	for (int dist=1;dist<10;dist++)
-//	    	{
-//	    		for (int run=1;run<=maxEMRuns;run++)
-//	    		{
-//		    		log.info("Estimating for pos="+pos+" and dist="+dist+": Run "+run);
-//		    		Scan scan = new Scan();
-//		            String columns = "details"; // comma seperated
-//		            SingleColumnValueFilter filter1=new SingleColumnValueFilter(Bytes.toBytes("details"),
-//		            		Bytes.toBytes("position"),
-//		            		CompareOp.EQUAL,Bytes.toBytes(pos));
-//		            SingleColumnValueFilter filter2=new SingleColumnValueFilter(Bytes.toBytes("details"),
-//		            		Bytes.toBytes("distance"),
-//		            		CompareOp.EQUAL,Bytes.toBytes(dist));
-//		            FilterList filterList=new FilterList();
-//		            filterList.addFilter(filter1);
-//		            filterList.addFilter(filter2);
-//		            scan.addColumns(columns);
-//		            scan.setFilter(filterList);
-//		            TableMapReduceUtil.initTableMapperJob("click_event", scan, EMMapper.class, ImmutableBytesWritable.class,
-//		                    IntWritable.class, job);
-//		            TableMapReduceUtil.initTableReducerJob("click_estimates", EMReducer.class, job);
-//	    		}
-//	    	}
-//	    }
+	 
 	    
 	}
 	
