@@ -1,9 +1,12 @@
 package org.yandex.estimate;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.cli2.builder.ArgumentBuilder;
 import org.apache.commons.cli2.builder.DefaultOptionBuilder;
@@ -18,7 +21,9 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HRegionPartitioner;
+import org.apache.hadoop.hbase.mapreduce.MultiTableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
+import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.ArrayWritable;
@@ -29,6 +34,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -107,6 +113,120 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 		return 0;
 	}
 	
+	public static class SessionMapper extends Mapper<Text,Session,Text,SessionArray>
+	{
+
+		@Override
+		protected void map(Text key, Session value,
+				org.apache.hadoop.mapreduce.Mapper.Context context)
+				throws IOException, InterruptedException {
+			String fullKey=String.format("%08d",value.getId());
+			String srcKey=fullKey.substring(0, 6);
+			SessionArray array=new SessionArray();
+			array.set(new Session[]{value});
+			context.write(new Text(srcKey), array);
+		}
+		
+	}
+	
+	public static class SessionCombiner extends Reducer<Text, SessionArray, Text,SessionArray> {
+
+		@Override
+		protected void reduce(Text arg0, Iterable<SessionArray> arg1,
+				Context arg2) throws IOException, InterruptedException {
+			Iterator<SessionArray> it=arg1.iterator();
+			List<Session> list=new ArrayList<Session>();
+			while (it.hasNext())
+			{
+				for (Writable obj:it.next().get())
+					list.add((Session)obj);	
+			}
+			
+			SessionArray array=new SessionArray();
+			array.set(list.toArray(new Session[0]));
+			arg2.write(arg0, array);
+				
+			
+		}
+	}
+	
+	public static class SessionReducer extends Reducer<Text,SessionArray,ImmutableBytesWritable,Writable>
+	{
+
+		@Override
+		protected void reduce(Text arg0, Iterable<SessionArray> values,
+				Context context) throws IOException, InterruptedException {
+			Iterator<SessionArray> obsIt = values.iterator();
+			
+			
+			while (obsIt.hasNext()) {
+				for (Writable obj:obsIt.next().get())
+				{
+					Session session = (Session) obj;
+					
+					for (Writable query : session.getQueries().get()) 
+					{
+						// log.info(((Query)query).toString());
+						Query queryObj = (Query) query;
+						for (Writable doc : queryObj.getDocs().get()) 
+						{
+							ImmutableBytesWritable clicksTableKey = new ImmutableBytesWritable(
+									Bytes.toBytes("click_event"));
+							DocEvent docEvent = (DocEvent) doc;
+
+							String id = session.getId() + "-" + queryObj.getId()
+									+ "-" + queryObj.getTime() + "-"
+									+ docEvent.getId();
+							ImmutableBytesWritable docKey = new ImmutableBytesWritable(
+									Bytes.toBytes(id));
+							Put put = new Put(docKey.get());
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("doc_id"),
+									Bytes.toBytes(docEvent.getId()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("query_id"),
+									Bytes.toBytes(docEvent.getQuery_id()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("session_id"),
+									Bytes.toBytes(docEvent.getSession_id()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("time"),
+									Bytes.toBytes(docEvent.getTime()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("distance"),
+									Bytes.toBytes(docEvent.getClick_distance()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("position"),
+									Bytes.toBytes(docEvent.getPosition()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("region"),
+									Bytes.toBytes(docEvent.getRegion()));
+							put.add(Bytes.toBytes("details"),
+									Bytes.toBytes("clicked"),
+									Bytes.toBytes(docEvent.getClicked()));
+							context.write(clicksTableKey, put);
+						}
+					}
+					ImmutableBytesWritable binarySessionsTableKey = new ImmutableBytesWritable(
+							Bytes.toBytes("binary_sessions"));
+					Put binaryPut = new Put(Bytes.toBytes(session.getId()));
+					ByteArrayOutputStream byteOutput = new ByteArrayOutputStream();
+					ObjectOutputStream output = new ObjectOutputStream(byteOutput);
+					session.write(output);
+					binaryPut.add(Bytes.toBytes("details"), Bytes.toBytes("data"),
+							byteOutput.toByteArray());
+
+					output.close();
+					byteOutput.close();
+					output = null;
+					byteOutput = null;
+					context.write(binarySessionsTableKey, binaryPut);
+				}
+				
+			}
+		}		
+	}
+	
 	private void run(Path input, Path output, boolean parseFile) throws Exception {
 		log.info("Starting YANDEX RELEVANCE!");
 		
@@ -133,29 +253,36 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 		    job.setJarByClass(ParseDataToBinaryDriver.class);
 		    job.waitForCompletion(true);
 		}
-		conf.set(DUMP_TO_CLICK_EVENT,"true");
-	    Job job1 = new Job(conf, "Putting files to click_event");
-	    log.info("Putting disk sessions file to HBase click_event!");
+		
+	    Job job1 = new Job(conf, "Putting files to tables!!");
+	    log.info("Putting disk sessions file to HBase!");
 		job1.setMapOutputKeyClass(Text.class);
-	    job1.setMapOutputValueClass(Session.class);
-	    job1.setMapperClass(Mapper.class);
-	    TableMapReduceUtil.initTableReducerJob("click_event", UrlBinarySessionReducer.class, job1);	    
-	    FileInputFormat.addInputPath(job1, output);	    
-	    job1.setInputFormatClass(SequenceFileInputFormat.class);	
+	    job1.setMapOutputValueClass(SessionArray.class);
+	    job1.setCombinerClass(SessionCombiner.class);
+	    job1.setMapperClass(SessionMapper.class);
+	    job1.setReducerClass(SessionReducer.class);
+	    job1.setOutputFormatClass(MultiTableOutputFormat.class);	    
+	    job1.setInputFormatClass(SequenceFileInputFormat.class);
+	    FileInputFormat.addInputPath(job1, output);
 	    job1.setJarByClass(ParseDataToBinaryDriver.class);
 	    job1.waitForCompletion(true);
 	    
-	    conf.set(DUMP_TO_CLICK_EVENT,"false");
-	    Job job2 = new Job(conf, "Putting files to binary_sessions");
-	    log.info("Putting disk sessions file to HBase binary_sessions!");
-		job2.setMapOutputKeyClass(Text.class);
-	    job2.setMapOutputValueClass(Session.class);
-	    job2.setMapperClass(Mapper.class);
-	    TableMapReduceUtil.initTableReducerJob("binary_sessions", UrlBinarySessionReducer.class, job2);	    
-	    FileInputFormat.addInputPath(job2, output);	    
-	    job2.setInputFormatClass(SequenceFileInputFormat.class);
-	    job2.setJarByClass(ParseDataToBinaryDriver.class);
-	    job2.waitForCompletion(true);   
+	    //TableMapReduceUtil.initTableReducerJob("click_event", UrlBinarySessionReducer.class, job1);	    
+	    	    
+	    	
+	    
+	    
+//	    conf.set(DUMP_TO_CLICK_EVENT,"false");
+//	    Job job2 = new Job(conf, "Putting files to binary_sessions");
+//	    log.info("Putting disk sessions file to HBase binary_sessions!");
+//		job2.setMapOutputKeyClass(Text.class);
+//	    job2.setMapOutputValueClass(Session.class);
+//	    job2.setMapperClass(Mapper.class);
+//	    TableMapReduceUtil.initTableReducerJob("binary_sessions", UrlBinarySessionReducer.class, job2);	    
+//	    FileInputFormat.addInputPath(job2, output);	    
+//	    job2.setInputFormatClass(SequenceFileInputFormat.class);
+//	    job2.setJarByClass(ParseDataToBinaryDriver.class);
+//	    job2.waitForCompletion(true);   
 	}
 	
 }
