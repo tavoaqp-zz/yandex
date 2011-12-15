@@ -1,10 +1,14 @@
 package org.yandex.estimate;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -12,6 +16,7 @@ import org.apache.commons.cli2.builder.ArgumentBuilder;
 import org.apache.commons.cli2.builder.DefaultOptionBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
@@ -48,6 +53,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yandex.estimate.FreqCounter1.Mapper1;
 import org.yandex.estimate.FreqCounter1.Reducer1;
+
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 public class ParseDataToBinaryDriver extends AbstractJob {
 	
@@ -115,17 +123,50 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 	
 	public static class SessionMapper extends Mapper<Text,Session,Text,SessionArray>
 	{
+		private HashSet<String> queries=new HashSet<String>();
 
 		@Override
 		protected void map(Text key, Session value,
 				org.apache.hadoop.mapreduce.Mapper.Context context)
 				throws IOException, InterruptedException {
-			String fullKey=String.format("%08d",value.getId());
-			String srcKey=fullKey.substring(0, 6);
-			SessionArray array=new SessionArray();
-			array.set(new Session[]{value});
-			context.write(new Text(srcKey), array);
+			HashSet<String> sessionQueries=new HashSet<String>();
+			for (Writable queryObj:value.getQueries().get())
+			{
+				Query query=(Query)queryObj;
+				sessionQueries.add(""+query.getId());
+			}
+			SetView<String> result=Sets.intersection(queries, sessionQueries);
+			if (!result.isEmpty())
+			{
+				String fullKey=String.format("%08d",value.getId());
+				String srcKey=fullKey.substring(0, 4);
+				SessionArray array=new SessionArray();
+				array.set(new Session[]{value});
+				context.write(new Text(srcKey), array);
+			}
 		}
+
+		@Override
+		protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context)
+				throws IOException, InterruptedException {
+			Path[] files=DistributedCache.getLocalCacheFiles(context.getConfiguration());
+			BufferedReader bufReader=new BufferedReader(new FileReader(files[0].toString()));
+			String line;
+			try {
+					 while ((line = bufReader.readLine()) != null) {
+						 queries.add(line.trim());
+					 }
+				 }
+			catch (Exception e) {
+					 e.printStackTrace();
+				 }
+			finally {				 
+				bufReader.close();
+			}
+			
+		}
+		
+		
 		
 	}
 	
@@ -231,6 +272,7 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 		log.info("Starting YANDEX RELEVANCE!");
 		
 		Configuration conf=getConf();
+		DistributedCache.addCacheFile(URI.create("/user/gsalazar/yandex/fulltraintestqueries.txt"), conf);
 		if (parseFile)
 		{
 			Job job = new Job(conf, "Parsing log file and putting sessions to disk");
