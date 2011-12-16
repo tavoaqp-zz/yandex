@@ -139,7 +139,7 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 			if (!result.isEmpty())
 			{
 				String fullKey=String.format("%08d",value.getId());
-				String srcKey=fullKey.substring(0, 4);
+				String srcKey=fullKey.substring(0, 6);
 				SessionArray array=new SessionArray();
 				array.set(new Session[]{value});
 				context.write(new Text(srcKey), array);
