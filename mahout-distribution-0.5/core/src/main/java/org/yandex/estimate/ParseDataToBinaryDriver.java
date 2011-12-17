@@ -123,48 +123,48 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 	
 	public static class SessionMapper extends Mapper<Text,Session,Text,SessionArray>
 	{
-		private HashSet<String> queries=new HashSet<String>();
+		
 
 		@Override
 		protected void map(Text key, Session value,
 				org.apache.hadoop.mapreduce.Mapper.Context context)
 				throws IOException, InterruptedException {
-			HashSet<String> sessionQueries=new HashSet<String>();
-			for (Writable queryObj:value.getQueries().get())
-			{
-				Query query=(Query)queryObj;
-				sessionQueries.add(""+query.getId());
-			}
-			SetView<String> result=Sets.intersection(queries, sessionQueries);
-			if (!result.isEmpty())
-			{
+//			HashSet<String> sessionQueries=new HashSet<String>();
+//			for (Writable queryObj:value.getQueries().get())
+//			{
+//				Query query=(Query)queryObj;
+//				sessionQueries.add(""+query.getId());
+//			}
+//			SetView<String> result=Sets.intersection(queries, sessionQueries);
+//			if (!result.isEmpty())
+//			{
 				String fullKey=String.format("%08d",value.getId());
 				String srcKey=fullKey.substring(0, 6);
 				SessionArray array=new SessionArray();
 				array.set(new Session[]{value});
 				context.write(new Text(srcKey), array);
-			}
+//			}
 		}
 
-		@Override
-		protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context)
-				throws IOException, InterruptedException {
-			Path[] files=DistributedCache.getLocalCacheFiles(context.getConfiguration());
-			BufferedReader bufReader=new BufferedReader(new FileReader(files[0].toString()));
-			String line;
-			try {
-					 while ((line = bufReader.readLine()) != null) {
-						 queries.add(line.trim());
-					 }
-				 }
-			catch (Exception e) {
-					 e.printStackTrace();
-				 }
-			finally {				 
-				bufReader.close();
-			}
-			
-		}
+//		@Override
+//		protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context)
+//				throws IOException, InterruptedException {
+//			Path[] files=DistributedCache.getLocalCacheFiles(context.getConfiguration());
+//			BufferedReader bufReader=new BufferedReader(new FileReader(files[0].toString()));
+//			String line;
+//			try {
+//					 while ((line = bufReader.readLine()) != null) {
+//						 queries.add(line.trim());
+//					 }
+//				 }
+//			catch (Exception e) {
+//					 e.printStackTrace();
+//				 }
+//			finally {				 
+//				bufReader.close();
+//			}
+//			
+//		}
 		
 		
 		

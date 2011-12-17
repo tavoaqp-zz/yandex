@@ -1,6 +1,8 @@
 package org.yandex.estimate;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.URI;
@@ -9,9 +11,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -28,11 +32,15 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
+
 public class UrlBinaryFileSessionReducer extends
 	Reducer<Text, DocObservations, Text,Session> {
 
 	private final Logger log = LoggerFactory.getLogger(UrlDocReducer.class);
-
+	private HashSet<String> queries=new HashSet<String>();
+	
 	public Collection<DocObservations> findQueries(Text key,
 			Iterator<DocObservations> it) {
 		HashMap<String, DocObservations> queries = new HashMap<String, DocObservations>();
@@ -134,16 +142,39 @@ public class UrlBinaryFileSessionReducer extends
 
 		Session session = new Session();
 		ArrayList<Query> queries = new ArrayList<Query>();
+		HashSet<String> sessionQueries=new HashSet<String>();
 		while (it.hasNext()) {
 			DocObservations obs = it.next();
 			Query query = new Query();
 			query.fillData(obs);
 			query.calcLastClicked();
 			queries.add(query);
+			sessionQueries.add(""+query.getId());
 		}
 		session.setId(queries.get(0).getSession_id());
 		session.getQueries().addQueries(queries);
-			
-		context.write(key, session);
+		SetView<String> result=Sets.intersection(this.queries, sessionQueries);
+		if (!result.isEmpty())	
+			context.write(key, session);
 	}
+
+	@Override
+	protected void setup(org.apache.hadoop.mapreduce.Reducer.Context context)
+			throws IOException, InterruptedException {
+		Path[] files=DistributedCache.getLocalCacheFiles(context.getConfiguration());
+		BufferedReader bufReader=new BufferedReader(new FileReader(files[0].toString()));
+		String line;
+		try {
+				 while ((line = bufReader.readLine()) != null) {
+					 queries.add(line.trim());
+				 }
+			 }
+		catch (Exception e) {
+				 e.printStackTrace();
+			 }
+		finally {				 
+			bufReader.close();
+		}
+	}
+	
 }
