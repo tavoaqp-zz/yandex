@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
@@ -139,7 +140,7 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 //			if (!result.isEmpty())
 //			{
 				String fullKey=String.format("%08d",value.getId());
-				String srcKey=fullKey.substring(0, 6);
+				String srcKey=fullKey.substring(0, 7);
 				SessionArray array=new SessionArray();
 				array.set(new Session[]{value});
 				context.write(new Text(srcKey), array);
@@ -290,7 +291,7 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 		    FileInputFormat.addInputPath(job, input);
 		    FileOutputFormat.setOutputPath(job, output);
 		    
-		    job.setInputFormatClass(SequenceFileInputFormat.class);
+		    job.setInputFormatClass(TextInputFormat.class);
 		    job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		    job.setJarByClass(ParseDataToBinaryDriver.class);
 		    job.waitForCompletion(true);
@@ -301,7 +302,7 @@ public class ParseDataToBinaryDriver extends AbstractJob {
 		job1.setMapOutputKeyClass(Text.class);
 	    job1.setMapOutputValueClass(SessionArray.class);
 	    job1.setCombinerClass(SessionCombiner.class);
-	    job1.setMapperClass(SessionMapper.class);
+	    job1.setMapperClass(SessionMapper.class);	    
 	    job1.setReducerClass(SessionReducer.class);
 	    job1.setOutputFormatClass(MultiTableOutputFormat.class);	    
 	    job1.setInputFormatClass(SequenceFileInputFormat.class);
